@@ -1,0 +1,33 @@
+# src/web/angular.json
+{
+  "projects": {
+    "career-graph-web": {
+      "root": "src/web/",
+      "sourceRoot": "src/web/src",
+      "projectType": "application",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "options": {
+            "outputPath": "dist/career-graph-web",
+            "index": "src/web/src/index.html",
+            "main": "src/web/src/main.ts",
+            "polyfills": "src/web/src/polyfills.ts",
+            "tsConfig": "src/web/tsconfig.app.json",
+            "aot": true,
+            "assets": ["src/web/src/favicon.ico", "src/web/src/assets"],
+            "styles": ["src/web/src/styles.scss"],
+            "scripts": []
+          }
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "browserTarget": "career-graph-web:build",
+            "proxyConfig": "src/web/proxy.conf.json"
+          }
+        }
+      }
+    }
+  }
+}

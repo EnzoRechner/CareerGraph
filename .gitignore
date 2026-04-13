@@ -1,0 +1,32 @@
+# .gitignore for CareerGraph project
+
+# Node modules
+src/web/node_modules/
+src/web/dist/
+
+# .NET build output
+src/api/CareerGraph.Api/bin/
+src/api/CareerGraph.Api/obj/
+
+# Docker files
+src/api/CareerGraph.Api/bin/
+src/api/CareerGraph.Api/obj/
+
+# Local O*NET data (large, gitignored)
+data/onet/
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+
+# System files
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+Thumbs.db

@@ -1,0 +1,58 @@
+# docker-compose.yml for CareerGraph
+# This file defines the database, API, web, and Caddy services.
+# It is the single source of truth for our local stack.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-careergraph}
+      POSTGRES_USER: ${DB_USER:-careergraph}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Initialise the schema at first boot
+      - ./data/seed/V1__create_careergraph_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-careergraph} -d ${DB_NAME:-careergraph}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  api:
+    build: ./src/api/CareerGraph.Api
+    environment:
+      ConnectionStrings__Default: "Host=db;Database=${DB_NAME:-careergraph};Username=${DB_USER:-careergraph};Password=${DB_PASSWORD}"
+      ASPNETCORE_URLS: "http://+:5000"
+      ASPNETCORE_ENVIRONMENT: "Development"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+
+  web:
+    build: ./src/web
+    depends_on:
+      - api
+    ports:
+      - "4200:80"
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - web
+      - api
+
+volumes:
+  pgdata:
+  caddy_data:
