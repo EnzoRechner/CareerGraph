@@ -33,4 +33,11 @@ export class CareerApiService {
     const params = new HttpParams().set('fromId', fromId).set('toId', toId);
     return this.http.get<{ nodeIds: string[] }>(`${this.BASE_URL}/path`, { params });
   }
+
+  /**
+   * Retrieve detailed information for a single career node by its ID.
+   */
+  getCareerDetail(id: string): Observable<CareerNode> {
+    return this.http.get<CareerNode>(`${this.BASE_URL}/${id}`);
+  }
 }
