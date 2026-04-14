@@ -82,42 +82,61 @@ public class CareerService : ICareerService
             .ToListAsync();
     }
 
-    public async Task<PathDto?> FindPathAsync(Guid fromId, Guid toId, int maxDepth = 3)
+    public async Task<PathDto?> FindPathAsync(Guid fromId, Guid toId, int maxDepth = 6)
     {
         if (fromId == toId) return new PathDto { NodeIds = new List<Guid> { fromId } };
 
         var allEdges = await _db.CareerEdges.ToListAsync();
-        var adj = new Dictionary<Guid, List<Guid>>();
+        var adj = new Dictionary<Guid, List<(Guid neighbor, double weight)>>();
         foreach (var e in allEdges)
         {
-            if (!adj.ContainsKey(e.SourceNodeId)) adj[e.SourceNodeId] = new List<Guid>();
-            if (!adj.ContainsKey(e.TargetNodeId)) adj[e.TargetNodeId] = new List<Guid>();
-            adj[e.SourceNodeId].Add(e.TargetNodeId);
-            adj[e.TargetNodeId].Add(e.SourceNodeId);
+            double weight = e.Weight.HasValue ? (double)e.Weight.Value : 1.0;
+            if (!adj.ContainsKey(e.SourceNodeId)) adj[e.SourceNodeId] = new List<(Guid,double)>();
+            if (!adj.ContainsKey(e.TargetNodeId)) adj[e.TargetNodeId] = new List<(Guid,double)>();
+            adj[e.SourceNodeId].Add((e.TargetNodeId, weight));
+            adj[e.TargetNodeId].Add((e.SourceNodeId, weight));
         }
 
-        var queue = new Queue<(Guid node, List<Guid> path)>();
-        var visited = new HashSet<Guid>();
-        queue.Enqueue((fromId, new List<Guid> { fromId }));
-        visited.Add(fromId);
+        var dist = new Dictionary<Guid, double>();
+        var prev = new Dictionary<Guid, Guid>();
+        var depth = new Dictionary<Guid, int>();
+        var pq = new PriorityQueue<Guid, double>();
 
-        while (queue.Count > 0)
+        dist[fromId] = 0;
+        depth[fromId] = 0;
+        pq.Enqueue(fromId, 0);
+
+        while (pq.TryDequeue(out var current, out var currentDist))
         {
-            var (current, path) = queue.Dequeue();
-            if (path.Count > maxDepth) continue;
-            if (adj.TryGetValue(current, out var neighbours))
+            if (current == toId) break;
+            if (!adj.TryGetValue(current, out var neighbours)) continue;
+            if (depth[current] >= maxDepth) continue;
+
+            foreach (var (nbr, w) in neighbours)
             {
-                foreach (var neigh in neighbours)
+                double newDist = currentDist + w;
+                if (!dist.TryGetValue(nbr, out var existingDist) || newDist < existingDist)
                 {
-                    if (visited.Contains(neigh)) continue;
-                    var newPath = new List<Guid>(path) { neigh };
-                    if (neigh == toId) return new PathDto { NodeIds = newPath };
-                    visited.Add(neigh);
-                    queue.Enqueue((neigh, newPath));
+                    dist[nbr] = newDist;
+                    prev[nbr] = current;
+                    depth[nbr] = depth[current] + 1;
+                    pq.Enqueue(nbr, newDist);
                 }
             }
         }
 
-        return null;
+        if (!dist.ContainsKey(toId)) return null;
+
+        var path = new List<Guid>();
+        var cur = toId;
+        while (cur != fromId)
+        {
+            path.Add(cur);
+            cur = prev[cur];
+        }
+        path.Add(fromId);
+        path.Reverse();
+
+        return new PathDto { NodeIds = path };
     }
 }

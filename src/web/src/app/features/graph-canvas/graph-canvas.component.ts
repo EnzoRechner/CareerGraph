@@ -16,6 +16,7 @@ export class GraphCanvasComponent implements OnInit, OnDestroy {
 
   @Input() set pathNodeIds(ids: string[]) {
     this._pathNodeIds = new Set(ids);
+    this.graph?.refresh();
   }
 
   @Output() nodeSelected = new EventEmitter<CareerNode | null>();
